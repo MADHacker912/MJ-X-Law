@@ -96,14 +96,10 @@ from actions.youtube_video     import youtube_video
 from actions.desktop           import desktop_control
 from actions.browser_control   import browser_control
 from actions.file_controller   import file_controller
-from actions.code_helper       import code_helper
-from actions.ponytail          import ponytail_action
-from actions.slopwatch         import slopwatch_action
 from actions.whatsapp_action   import whatsapp_action
 from actions.notes_action      import notes_action
 from actions.system_optimizer  import system_optimizer
 from bridges.bridge_manager    import get_bridge_manager
-from actions.dev_agent         import dev_agent
 from actions.web_search        import web_search as web_search_action
 from actions.computer_control  import computer_control
 from actions.game_updater      import game_updater
@@ -113,8 +109,6 @@ from actions.system_monitor    import SystemMonitor, get_system_status
 from actions.proactive         import ProactiveEngine
 from core.sleep_inhibitor import SleepInhibitor
 from core.autonomous_learner import AutonomousLearner
-from core.self_modifier import self_edit_file, create_codebase_backup
-from core.neural_brain import get_neural_brain
 from actions.background_monitor import (
     add_monitor, remove_monitor, list_monitors, check_all as monitor_check_all,
 )
@@ -620,86 +614,6 @@ TOOL_DECLARATIONS = [
         }
     },
     {
-        "name": "self_edit",
-        "description": (
-            "Safely edit a workspace file directly. Use only when the user explicitly requests MJ to modify its own code. "
-            "Write the full file content in the 'content' field. The file must reside inside the MJ workspace."
-        ),
-        "parameters": {
-            "type": "OBJECT",
-            "properties": {
-                "file_path": {"type": "STRING", "description": "Workspace-relative or absolute path to the file to edit."},
-                "content":   {"type": "STRING", "description": "The exact file contents to write."},
-                "summary":   {"type": "STRING", "description": "Optional short summary of the change."},
-            },
-            "required": ["file_path", "content"]
-        }
-    },
-    {
-        "name": "neural_status",
-        "description": (
-            "Returns diagnostics and self-learning telemetry for MJ's internal Neural Brain "
-            "(learning steps, code risk assessment accuracy, and weight parameters)."
-        ),
-        "parameters": {
-            "type": "OBJECT",
-            "properties": {},
-        }
-    },
-    {
-        "name": "code_helper",
-        "description": (
-            "ALWAYS call this tool when the user asks to create, write, generate, edit, "
-            "run, optimize or save ANY code file or code snippet (e.g. while loop script, python script, desktop file). "
-            "Do NOT just reply with text claiming the file was created; you MUST call this tool to write and save the file to disk."
-        ),
-        "parameters": {
-            "type": "OBJECT",
-            "properties": {
-                "action":      {"type": "STRING", "description": "write | edit | explain | run | build | auto (default: write)"},
-                "description": {"type": "STRING", "description": "What the code should do or what change to make"},
-                "language":    {"type": "STRING", "description": "Programming language (default: python)"},
-                "output_path": {"type": "STRING", "description": "Where to save the file (default: Desktop/while_loop.py)"},
-                "file_path":   {"type": "STRING", "description": "Path to existing file for edit/explain/run/build"},
-                "code":        {"type": "STRING", "description": "Raw code string for explain"},
-                "args":        {"type": "STRING", "description": "CLI arguments for run/build"},
-                "timeout":     {"type": "INTEGER", "description": "Execution timeout in seconds (default: 30)"},
-            },
-            "required": ["action", "description"]
-        }
-    },
-    {
-        "name": "ponytail",
-        "description": (
-            "Senior Developer minimalist coding engine. Use whenever asked to simplify code, audit for over-engineering, "
-            "remove bloat, replace libraries with Python stdlib, or write the shortest, cleanest working solution (YAGNI)."
-        ),
-        "parameters": {
-            "type": "OBJECT",
-            "properties": {
-                "action": {"type": "STRING", "description": "audit | review | simplify | set_mode | help (default: review)"},
-                "target": {"type": "STRING", "description": "File path, directory, or raw code snippet to analyze/simplify"},
-                "level":  {"type": "STRING", "description": "Intensity level: lite | full | ultra"},
-            },
-            "required": ["action"]
-        }
-    },
-    {
-        "name": "slopwatch",
-        "description": (
-            "SlopWatch AI Anti-Cheat & Reward Hacking Detector. Use when asked to check for AI slop, "
-            "disabled tests, suppressed warnings, swallowed exceptions, arbitrary sleep/delays, or CPM bypasses."
-        ),
-        "parameters": {
-            "type": "OBJECT",
-            "properties": {
-                "action": {"type": "STRING", "description": "scan | analyze | audit (default: scan)"},
-                "target": {"type": "STRING", "description": "File or directory path to scan for AI slop"},
-            },
-            "required": ["action"]
-        }
-    },
-    {
         "name": "whatsapp",
         "description": (
             "Advanced WhatsApp Assistant: Check recent messages, get AI summary of unread chats, "
@@ -745,35 +659,6 @@ TOOL_DECLARATIONS = [
                 "action": {"type": "STRING", "description": "optimize | free_ram | top_processes | clean_temp | battery (default: optimize)"},
             },
             "required": ["action"]
-        }
-    },
-    {
-        "name": "terminal_control",
-        "description": (
-            "Opens, closes, or executes commands in the embedded GUI Terminal panel on screen. "
-            "Use when the user asks to open terminal, toggle terminal, or run a terminal command visibly in the UI."
-        ),
-        "parameters": {
-            "type": "OBJECT",
-            "properties": {
-                "action":  {"type": "STRING", "description": "open | close | toggle | run | clear (default: toggle)"},
-                "command": {"type": "STRING", "description": "Optional shell command to execute in the terminal"},
-            },
-            "required": ["action"]
-        }
-    },
-    {
-        "name": "dev_agent",
-        "description": "Builds complete multi-file projects from scratch: plans, writes files, installs deps, opens VSCode, runs and fixes errors.",
-        "parameters": {
-            "type": "OBJECT",
-            "properties": {
-                "description":  {"type": "STRING", "description": "What the project should do"},
-                "language":     {"type": "STRING", "description": "Programming language (default: python)"},
-                "project_name": {"type": "STRING", "description": "Optional project folder name"},
-                "timeout":      {"type": "INTEGER", "description": "Run timeout in seconds (default: 30)"},
-            },
-            "required": ["description"]
         }
     },
     {
@@ -1765,37 +1650,6 @@ class MJLive:
             elif name == "take_photo":
                 r = await loop.run_in_executor(None, lambda: take_photo(player=self.ui))
                 result = r or "Photo clicked."
-
-            elif name == "self_edit":
-                file_path = str(args.get("file_path", "")).strip()
-                content = args.get("content", "")
-                if not file_path:
-                    result = "No file_path provided."
-                elif content is None:
-                    result = "No content provided."
-                else:
-                    result = await loop.run_in_executor(
-                        None,
-                        lambda: self_edit_file(target_relative_path=file_path, new_content=content)
-                    )
-
-            elif name == "neural_status":
-                brain = get_neural_brain()
-                status = brain.get_status()
-                result = json.dumps(status, indent=2)
-
-            elif name == "code_helper":
-                r = await loop.run_in_executor(None, lambda: code_helper(parameters=args, player=self.ui, speak=self.speak))
-                result = r or "Done."
-
-            elif name == "ponytail":
-                r = await loop.run_in_executor(None, lambda: ponytail_action(parameters=args, player=self.ui, speak=self.speak))
-                result = r or "Done."
-
-            elif name == "slopwatch":
-                r = await loop.run_in_executor(None, lambda: slopwatch_action(parameters=args, player=self.ui, speak=self.speak))
-                result = r or "Done."
-
             elif name == "whatsapp":
                 r = await loop.run_in_executor(None, lambda: whatsapp_action(parameters=args, player=self.ui, speak=self.speak))
                 result = r or "Done."
@@ -1806,32 +1660,6 @@ class MJLive:
 
             elif name == "system_optimizer":
                 r = await loop.run_in_executor(None, lambda: system_optimizer(parameters=args, player=self.ui, speak=self.speak))
-                result = r or "Done."
-
-            elif name == "terminal_control":
-                action = str(args.get("action", "toggle")).lower().strip()
-                cmd = str(args.get("command", "")).strip()
-                if self.ui and hasattr(self.ui, "toggle_terminal"):
-                    if action == "open":
-                        self.ui.show_terminal(cmd)
-                        result = f"Terminal opened{' and executed: ' + cmd if cmd else ''}."
-                    elif action == "close":
-                        self.ui._terminal_panel.hide()
-                        result = "Terminal closed."
-                    elif action == "clear":
-                        self.ui._clear_terminal()
-                        result = "Terminal cleared."
-                    elif action == "run" and cmd:
-                        self.ui.show_terminal(cmd)
-                        result = f"Command '{cmd}' executed in terminal."
-                    else:
-                        self.ui.toggle_terminal()
-                        result = "Terminal toggled."
-                else:
-                    result = "UI Terminal not available."
-
-            elif name == "dev_agent":
-                r = await loop.run_in_executor(None, lambda: dev_agent(parameters=args, player=self.ui, speak=self.speak))
                 result = r or "Done."
 
             elif name == "openclaw":

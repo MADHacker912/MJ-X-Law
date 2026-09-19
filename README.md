@@ -93,10 +93,12 @@ Built on the **Google Gemini Live API**, MJ-X bridges speech, vision, background
 - **Application & Browser Management**: Launch, close, and manage local desktop applications and browser tabs natively.
 - **File System Operations**: Create, move, delete, read, and summarize local workspace documents and directories.
 
-### 4. Developer Agent & Minimalist Coding Engine
-- **Dev Agent (`dev_agent.py`)**: Multi-file project scaffolding, automated debugging, and code generation.
-- **Ponytail Philosophy (`ponytail.py`)**: Enforces senior-dev minimalist principles — YAGNI (You Aren't Gonna Need It), standard library first, deletion over addition, zero boilerplate.
-- **SlopWatch AI Anti-Cheat (`slopwatch.py`)**: Detects reward hacking, fake test passes, suppressed warnings, and dead AI boilerplate.
+### 4. Senior Advocate Legal Co-Pilot & Practice Management
+- **1-Page Legal Drafting (`advocate_helper.py`)**: Automatic generation of court applications, notices, and petitions in MS Word/WordPad with zero AI tokens, zero `/n` artifacts, and 1-touch default printer dispatch.
+- **Indian Legal Research (`advocate_research.py`)**: Offline Indian law lookup (BNS, BNSS, BSA, IPC, CrPC, CPC) + live on-screen Indian Kanoon deep research protocol (*"सर, दो मिनट रुकिए..."*).
+- **UP Bhulekh Khatauni Portal (`advocate_bhulekh.py`)**: Interactive retrieval of UP land records (खतौनी / भूलेख) from `upbhulekh.gov.in`.
+- **Digital Case Diary (`advocate_diary.py`)**: Seamless synchronization with `advdiaryy.netlify.app` for daily cause lists, upcoming hearings, and case registration.
+- **Safe Background Auto-Updater (`core/updater.py`)**: Automatic startup updates from GitHub preserving all user credentials, PINs, and memories.
 
 ### 5. Multi-Channel Bridges & Remote Dashboard
 - **WhatsApp Bridge (`whatsapp_bridge.py`)**: Integrated Node.js/Baileys gateway for automated message summaries, unread alerts, and natural contact responses.
@@ -141,9 +143,11 @@ MJ-X/
 │   ├── web_search.py           # Parallel Gemini Grounded + DuckDuckGo search
 │   ├── computer_settings.py    # Volume, brightness, WiFi, power controls
 │   ├── computer_control.py     # Keyboard, mouse, shortcuts, window manager
-│   ├── dev_agent.py            # Autonomous multi-file project developer
-│   ├── ponytail.py             # Minimalist senior-dev code simplification
-│   ├── slopwatch.py            # AI anti-cheat & slop detection
+│   ├── advocate_helper.py      # 1-page Word/WordPad drafting & printer dispatch
+│   ├── advocate_research.py    # Indian Kanoon search & legal statute lookup
+│   ├── advocate_bhulekh.py     # UP Bhulekh (upbhulekh.gov.in) Khatauni retrieval
+│   ├── advocate_diary.py       # advdiaryy.netlify.app case sync & legal news
+│   ├── windows_system.py       # Lock screen detection, PIN auto-unlock, autostart
 │   ├── background_monitor.py   # Daily background topic watcher
 │   ├── system_monitor.py       # Hardware telemetry & resource alerts
 │   └── whatsapp_action.py      # WhatsApp contact & messaging dispatcher
@@ -226,10 +230,7 @@ While MJ-X is functional and daily-drivable, the following known challenges are 
    - *Issue*: Capturing 4K multi-monitor layouts simultaneously can cause a ~500ms–1.5s latency spike before sending payloads to the vision model.
    - *Mitigation*: Region-of-interest cropping and adaptive image downsampling are in progress.
 
-5. **Sandbox Isolation for Code Execution**:
-   - *Issue*: `dev_agent.py` and `code_helper.py` execute and modify files directly in the target workspace. An isolated containerized runtime (Docker / WebAssembly sandbox) is planned for safer autonomous code execution.
-
-6. **Hardware Telemetry on Non-NVIDIA / Virtual Environments**:
+5. **Hardware Telemetry on Non-NVIDIA / Virtual Environments**:
    - *Issue*: GPU temperature and VRAM monitoring currently rely on NVIDIA NVML / `nvidia-smi`. Systems with Intel/AMD integrated GPUs default to CPU/RAM telemetry only.
 
 ---
