@@ -20,13 +20,13 @@ try:
     pyautogui.FAILSAFE = True
     pyautogui.PAUSE    = 0.05
     _PYAUTOGUI = True
-except ImportError:
+except Exception:
     _PYAUTOGUI = False
 
 try:
     import pyperclip
     _PYPERCLIP = True
-except ImportError:
+except Exception:
     _PYPERCLIP = False
 
 def _base_dir() -> Path:
@@ -154,25 +154,63 @@ def _user_profile() -> dict:
         pass
     return {}
 
+def _clean_input_text(text: str) -> str:
+    """Converts literal /n, \n, \\n, and carriage returns into real line breaks."""
+    if not text:
+        return ""
+    return re.sub(r'(?:[/\\]\s*n|\r\n|\\r\\n)', '\n', text)
+
+
 def _type(text: str, interval: float = 0.03) -> str:
     _require_pyautogui()
-    time.sleep(0.3)
+    text = _clean_input_text(text)
+    time.sleep(0.2)
+    has_unicode = any(ord(c) > 127 for c in text)
+    has_newlines = "\n" in text
+    if (has_unicode or has_newlines) and _PYPERCLIP:
+        pyperclip.copy(text)
+        time.sleep(0.1)
+        paste_key = "command" if _get_os() == "mac" else "ctrl"
+        pyautogui.hotkey(paste_key, "v")
+        return f"Typed (clipboard): {text[:60]}{'…' if len(text) > 60 else ''}"
+
+    if "\n" in text:
+        lines = text.split("\n")
+        for i, line in enumerate(lines):
+            if line:
+                pyautogui.typewrite(line, interval=interval)
+            if i < len(lines) - 1:
+                pyautogui.press("enter")
+        return f"Typed: {text[:60]}{'…' if len(text) > 60 else ''}"
+
     pyautogui.typewrite(text, interval=interval)
     return f"Typed: {text[:60]}{'…' if len(text) > 60 else ''}"
 
 
 def _smart_type(text: str, clear_first: bool = True) -> str:
     _require_pyautogui()
+    text = _clean_input_text(text)
     if clear_first:
         _clear_field()
         time.sleep(0.1)
 
-    if len(text) > 20 and _PYPERCLIP:
+    has_unicode = any(ord(c) > 127 for c in text)
+    has_newlines = "\n" in text
+    if (len(text) > 5 or has_unicode or has_newlines) and _PYPERCLIP:
         pyperclip.copy(text)
         time.sleep(0.1)
         paste_key = "command" if _get_os() == "mac" else "ctrl"
         pyautogui.hotkey(paste_key, "v")
         return f"Smart-typed (clipboard): {text[:60]}{'…' if len(text) > 60 else ''}"
+
+    if "\n" in text:
+        lines = text.split("\n")
+        for i, line in enumerate(lines):
+            if line:
+                pyautogui.typewrite(line, interval=0.04)
+            if i < len(lines) - 1:
+                pyautogui.press("enter")
+        return f"Smart-typed: {text[:60]}{'…' if len(text) > 60 else ''}"
 
     pyautogui.typewrite(text, interval=0.04)
     return f"Smart-typed: {text[:60]}{'…' if len(text) > 60 else ''}"

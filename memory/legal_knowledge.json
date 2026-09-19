@@ -1,0 +1,86 @@
+{
+  "jurisdiction": "India",
+  "version": "2024-2026",
+  "new_criminal_laws": {
+    "effective_date": "2024-07-01",
+    "bns_ipc_mapping": {
+      "103_bns": {"old_ipc": "302", "title": "हत्या (Murder)", "punishment": "मृत्युदंड या आजीवन कारावास तथा जुर्माना", "bailable": "गैर-जमानती (Non-bailable)", "triable_by": "सत्र न्यायालय (Court of Session)"},
+      "109_bns": {"old_ipc": "307", "title": "हत्या का प्रयास (Attempt to Murder)", "punishment": "10 वर्ष तक कारावास या आजीवन", "bailable": "गैर-जमानती", "triable_by": "सत्र न्यायालय"},
+      "115_bns": {"old_ipc": "323", "title": "स्वेच्छा से चोट पहुंचाना (Voluntarily causing hurt)", "punishment": "1 वर्ष तक कारावास या ₹1000 जुर्माना", "bailable": "जमानती (Bailable)", "triable_by": "कोई भी मजिस्ट्रेट"},
+      "117_bns": {"old_ipc": "325", "title": "गंभीर चोट पहुंचाना (Grievous hurt)", "punishment": "7 वर्ष तक कारावास और जुर्माना", "bailable": "जमानती", "triable_by": "कोई भी मजिस्ट्रेट"},
+      "303_bns": {"old_ipc": "379", "title": "चोरी (Theft)", "punishment": "3 वर्ष तक कारावास या जुर्माना", "bailable": "गैर-जमानती", "triable_by": "कोई भी मजिस्ट्रेट"},
+      "308_bns": {"old_ipc": "384", "title": "जबरन वसूली (Extortion)", "punishment": "3 वर्ष तक कारावास या जुर्माना", "bailable": "जमानती", "triable_by": "कोई भी मजिस्ट्रेट"},
+      "316_bns": {"old_ipc": "406", "title": "आपराधिक विश्वासघात (Criminal Breach of Trust)", "punishment": "5 वर्ष तक कारावास या जुर्माना", "bailable": "गैर-जमानती", "triable_by": "प्रथम श्रेणी मजिस्ट्रेट"},
+      "318_bns": {"old_ipc": "420", "title": "धोखाधड़ी एवं बेईमानी (Cheating and dishonestly inducing delivery of property)", "punishment": "7 वर्ष तक कारावास और जुर्माना", "bailable": "गैर-जमानती", "triable_by": "प्रथम श्रेणी मजिस्ट्रेट"},
+      "64_bns": {"old_ipc": "376", "title": "बलात्कार (Rape)", "punishment": "न्यूनतम 10 वर्ष से आजीवन कारावास", "bailable": "गैर-जमानती", "triable_by": "सत्र न्यायालय"},
+      "85_bns": {"old_ipc": "498A", "title": "पति या उसके नातेदारों द्वारा क्रूरता (Cruelty by Husband or Relatives)", "punishment": "3 वर्ष तक कारावास और जुर्माना", "bailable": "गैर-जमानती", "triable_by": "प्रथम श्रेणी मजिस्ट्रेट"},
+      "351_bns": {"old_ipc": "506", "title": "आपराधिक धमकी (Criminal Intimidation)", "punishment": "2 वर्ष तक कारावास (गंभीर धमकी में 7 वर्ष)", "bailable": "जमानती", "triable_by": "कोई भी मजिस्ट्रेट"},
+      "352_bns": {"old_ipc": "504", "title": "शांति भंग करने के इरादे से जानबूझकर अपमान (Intentional insult to provoke breach of peace)", "punishment": "2 वर्ष तक कारावास या जुर्माना", "bailable": "जमानती", "triable_by": "कोई भी मजिस्ट्रेट"},
+      "356_bns": {"old_ipc": "499/500", "title": "मानहानि (Defamation)", "punishment": "2 वर्ष तक सादा कारावास या जुर्माना या सामुदायिक सेवा", "bailable": "जमानती", "triable_by": "प्रथम श्रेणी मजिस्ट्रेट"}
+    },
+    "bnss_crpc_mapping": {
+      "173_bnss": {"old_crpc": "154", "title": "संज्ञेय अपराधों में सूचना / प्रथम सूचना रिपोर्ट (FIR / Zero FIR / e-FIR)", "note": "e-FIR की व्यवस्था, 3 दिन के भीतर हस्ताक्षर अनिवार्य"},
+      "180_bnss": {"old_crpc": "161", "title": "पुलिस द्वारा गवाहों की परीक्षा (Examination of witnesses by police)", "note": "ऑडियो-वीडियो माध्यम से रिकॉर्डिंग की अनुमति"},
+      "183_bnss": {"old_crpc": "164", "title": "मजिस्ट्रेट द्वारा संस्वीकृति एवं कथन रिकॉर्ड करना (Confessions and statements)"},
+      "193_bnss": {"old_crpc": "173", "title": "अन्वेषण की समाप्ति पर पुलिस रिपोर्ट / चालान (Police Report / Charge-sheet)", "note": "90 दिन के भीतर जांच पूरी करने का प्रावधान"},
+      "480_bnss": {"old_crpc": "437", "title": "गैर-जमानती मामलों में मजिस्ट्रेट द्वारा जमानत (Bail in Non-Bailable Cases before Magistrate)"},
+      "482_bnss": {"old_crpc": "439", "title": "सत्र न्यायालय एवं उच्च न्यायालय की जमानत संबंधी विशेष शक्तियां (Special powers of High Court / Sessions Court regarding Bail)"},
+      "484_bnss": {"old_crpc": "438", "title": "गिरफ्तारी की आशंका वाले व्यक्ति की जमानत (अग्रिम जमानत / Anticipatory Bail)"},
+      "35_bnss": {"old_crpc": "41A", "title": "गिरफ्तारी के स्थान पर पुलिस के समक्ष उपस्थित होने की नोटिस (Notice of appearance)", "note": "7 वर्ष से कम सजा वाले अपराधों में नोटिस अनिवार्य"},
+      "144_bnss": {"old_crpc": "125", "title": "पत्नी, बच्चों एवं माता-पिता के भरण-पोषण का आदेश (Order for maintenance of wives, children and parents)"}
+    },
+    "bsa_iea_mapping": {
+      "61_bsa": {"old_iea": "65", "title": "दस्तावेजी साक्ष्य (Documentary Evidence)"},
+      "63_bsa": {"old_iea": "65B", "title": "इलेक्ट्रॉनिक रिकॉर्ड की ग्राह्यता (Admissibility of electronic records)", "note": "इलेक्ट्रॉनिक साक्ष्य का प्रमाण पत्र अनिवार्य"}
+    }
+  },
+  "landmark_precedents": [
+    {
+      "case_name": "Arnesh Kumar v. State of Bihar (2014) 8 SCC 273",
+      "court": "Supreme Court of India",
+      "principle": "7 वर्ष तक की सजा वाले मामलों (विशेषकर 498A IPC / 85 BNS) में पुलिस सीधे गिरफ्तार नहीं कर सकती। धारा 41A CrPC (अब धारा 35 BNSS) का नोटिस देना अनिवार्य है। बिना ठोस कारण गिरफ्तारी करने पर पुलिस अधिकारी अवमानना के भागी होंगे।"
+    },
+    {
+      "case_name": "Satender Kumar Antil v. CBI (2022) 10 SCC 51",
+      "court": "Supreme Court of India",
+      "principle": "जमानत पर विस्तृत दिशा-निर्देश। अपराधों को 4 श्रेणियों (A, B, C, D) में बांटा गया। अगर आरोपी जांच के दौरान गिरफ्तार नहीं हुआ और उसने सहयोग किया, तो आरोप पत्र दाखिल होने पर सामान्यतः बिना हिरासत में लिए जमानत दी जाए।"
+    },
+    {
+      "case_name": "Lalita Kumari v. Govt. of U.P. (2014) 2 SCC 1",
+      "court": "Supreme Court of India (Constitution Bench)",
+      "principle": "यदि दी गई सूचना से संज्ञेय अपराध (Cognizable Offence) का प्रकटीकरण होता है, तो धारा 154 CrPC (अब 173 BNSS) के तहत प्राथमिकी (FIR) दर्ज करना पुलिस के लिए अनिवार्य है। प्रारंभिक जांच केवल सीमित श्रेणियों में ही अनुमत है।"
+    },
+    {
+      "case_name": "Rajnesh v. Neha (2021) 2 SCC 324",
+      "court": "Supreme Court of India",
+      "principle": "भरण-पोषण (Maintenance - CrPC 125, DV Act, HMA 24) के सभी मामलों में दोनों पक्षों द्वारा शपथ-पत्र (Affidavit of Assets and Liabilities) दाखिल करना अनिवार्य है। भरण-पोषण की देयता आवेदन की तिथि से होगी।"
+    },
+    {
+      "case_name": "D.K. Basu v. State of West Bengal (1997) 1 SCC 416",
+      "court": "Supreme Court of India",
+      "principle": "गिरफ्तारी और हिरासत के समय मानवाधिकारों की रक्षा। अरेस्ट मेमो तैयार करना, रिश्तेदार को सूचना देना, और प्रत्येक 48 घंटे में मेडिकल परीक्षण कराना अनिवार्य दिशानिर्देश हैं।"
+    },
+    {
+      "case_name": "Arjun Panditrao Khotkar v. Kailash Kushanrao Gorantyal (2020) 7 SCC 1",
+      "court": "Supreme Court of India",
+      "principle": "इलेक्ट्रॉनिक साक्ष्य (सीडी, पेनड्राइव, कॉल रिकॉर्ड, व्हाट्सएप चैट) को साबित करने के लिए धारा 65B(4) साक्ष्य अधिनियम (अब धारा 63 BSA) का प्रमाण-पत्र अनिवार्य पूर्व-शर्त है।"
+    },
+    {
+      "case_name": "Sanjay Chandra v. CBI (2012) 1 SCC 40",
+      "court": "Supreme Court of India",
+      "principle": "जेल अपवाद है और जमानत नियम है (Bail is the rule, jail is an exception)। विचाराधीन कैदी को दंडात्मक रूप में जेल में नहीं रखा जा सकता।"
+    }
+  ],
+  "common_civil_provisions": {
+    "cpc_order_39_rule_1_2": "अस्थायी निषेधाज्ञा (Temporary Injunction) - तीन सुनहरे सिद्धांत: प्रथम दृष्टया मामला (Prima Facie Case), अपूरणीय क्षति (Irreparable Injury), सुविधा का संतुलन (Balance of Convenience)।",
+    "cpc_order_7_rule_11": "वाद पत्र का नामंजूर किया जाना (Rejection of Plaint) - वाद कारण का अभाव, विधि द्वारा वर्जित या अपर्याप्त कोर्ट फीस पर।",
+    "cpc_order_6_rule_17": "अभिवचनों का संशोधन (Amendment of Pleadings) - विचारण प्रारंभ होने से पूर्व उचित कारणों पर संशोधन अनुमत।",
+    "ni_act_section_138": "चेक बाउंस का वाद: बैंक रिटर्न मेमो की तारीख से 30 दिन के भीतर विधिक नोटिस देना अनिवार्य। नोटिस प्राप्ति के 15 दिन के भीतर भुगतान न होने पर अगले 30 दिन के भीतर सक्षम मजिस्ट्रेट के समक्ष परिवाद दाखिल करना होता है।"
+  },
+  "legal_search_portals": [
+    {"name": "Indian Kanoon", "url": "https://indiankanoon.org", "search_template": "https://indiankanoon.org/search/?formInput={query}"},
+    {"name": "India Code", "url": "https://www.indiacode.nic.in", "search_template": "https://www.indiacode.nic.in/handle/123456789/1362/simple-search?query={query}"},
+    {"name": "eCourts Services", "url": "https://services.ecourts.gov.in"},
+    {"name": "Supreme Court of India", "url": "https://www.sci.gov.in"}
+  ]
+}

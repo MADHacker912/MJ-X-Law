@@ -21,22 +21,33 @@ def _get_api_key() -> str:
 def _gemini_search(query: str) -> str:
     from google import genai
 
-    client   = genai.Client(api_key=_get_api_key())
-    response = client.models.generate_content(
-        model="gemini-3.6-flash",
-        contents=query,
-        config={"tools": [{"google_search": {}}]},
-    )
+    key = _get_api_key()
+    if key:
+        try:
+            client   = genai.Client(api_key=key)
+            response = client.models.generate_content(
+                model="gemini-2.0-flash",
+                contents=query,
+                config={"tools": [{"google_search": {}}]},
+            )
 
-    text = ""
-    for part in response.candidates[0].content.parts:
-        if hasattr(part, "text") and part.text:
-            text += part.text
+            text = ""
+            for part in response.candidates[0].content.parts:
+                if hasattr(part, "text") and part.text:
+                    text += part.text
 
-    text = text.strip()
-    if not text:
-        raise ValueError("Gemini returned an empty response.")
-    return text
+            text = text.strip()
+            if text:
+                return text
+        except Exception as e:
+            print(f"[WebSearch] Gemini search failed: {e}. Falling back to OpenRouter...")
+
+    # OpenRouter fallback
+    try:
+        from core.api_fallback import call_openrouter
+        return call_openrouter(f"Search and answer concisely: {query}")
+    except Exception:
+        raise ValueError("Both Gemini and OpenRouter search failed.")
 
 
 def _ddg_search(query: str, max_results: int = 6) -> list[dict]:

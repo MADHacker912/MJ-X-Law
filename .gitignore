@@ -85,11 +85,13 @@ logs/
 *.pem
 secrets.*
 config/api_keys.json
+config/system_creds.json
 config/certs/
 
 # --- Personal Memory Stores, Snapshots & Auth ---
 memory/*.json
 !memory/skills.json
+!memory/legal_knowledge.json
 memory/backups/
 memory/whatsapp_auth/
 memory/*.npz

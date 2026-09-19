@@ -30,7 +30,7 @@ from PyQt6.QtGui import (
     QPen, QPixmap, QRadialGradient, QShortcut,
 )
 from PyQt6.QtWidgets import (
-    QApplication, QFileDialog, QFrame, QHBoxLayout, QLabel, QLineEdit,
+    QApplication, QCheckBox, QFileDialog, QFrame, QHBoxLayout, QLabel, QLineEdit,
     QMainWindow, QPushButton, QScrollArea, QSizePolicy, QSplitter,
     QStackedWidget, QTextEdit, QVBoxLayout, QWidget, QProgressBar,
     QComboBox,
@@ -1192,14 +1192,15 @@ class _CameraPreview(QWidget):
 
 
 class SetupOverlay(QWidget):
-    done = pyqtSignal(str, str)
+    done = pyqtSignal(str, str, str, str, bool)
+    _key_detected_sig = pyqtSignal(str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self.setStyleSheet(f"""
             SetupOverlay {{
-                background: rgba(0, 6, 10, 245);
+                background: rgba(0, 6, 10, 248);
                 border: 1px solid {C.BORDER_B};
                 border-radius: 6px;
             }}
@@ -1209,10 +1210,11 @@ class SetupOverlay(QWidget):
             _OS.lower(), "linux"
         )
         self._sel_os = detected
+        self._key_detected_sig.connect(self._on_key_detected)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(30, 22, 30, 22)
-        layout.setSpacing(8)
+        layout.setContentsMargins(26, 18, 26, 18)
+        layout.setSpacing(6)
 
         def _lbl(txt, font_size=9, bold=False, color=C.PRI,
                  align=Qt.AlignmentFlag.AlignCenter):
@@ -1223,58 +1225,107 @@ class SetupOverlay(QWidget):
             w.setStyleSheet(f"color: {color}; background: transparent;")
             return w
 
-        layout.addWidget(_lbl("◈  INITIALISATION REQUIRED", 13, True))
-        layout.addWidget(_lbl("Configure MJ before first boot.", 9, color=C.PRI_DIM))
-        layout.addSpacing(6)
+        layout.addWidget(_lbl("◈  ADVOCATE AI — INITIAL SETUP", 12, True))
+        layout.addWidget(_lbl("विधिक सहायक प्रारंभिक सेटअप एवं विंडोज अनुमतियां", 8, color=C.PRI_DIM))
+        layout.addSpacing(2)
 
         sep = QFrame(); sep.setFrameShape(QFrame.Shape.HLine)
         sep.setStyleSheet(f"color: {C.BORDER};"); layout.addWidget(sep)
-        layout.addSpacing(4)
 
-        layout.addWidget(_lbl("GEMINI API KEY", 8, color=C.TEXT_DIM,
+        # 1. API Key + Autopilot row
+        layout.addWidget(_lbl("GEMINI / OPENROUTER API KEY (एपीआई कुंजी)", 8, color=C.TEXT_DIM,
                                align=Qt.AlignmentFlag.AlignLeft))
+        key_row = QHBoxLayout(); key_row.setSpacing(6)
         self._key_input = QLineEdit()
         self._key_input.setEchoMode(QLineEdit.EchoMode.Password)
-        self._key_input.setPlaceholderText("AIza…")
-        self._key_input.setFont(QFont("Courier New", 10))
-        self._key_input.setFixedHeight(32)
+        self._key_input.setPlaceholderText("AIza… या sk-or-v1…")
+        self._key_input.setFont(QFont("Courier New", 9))
+        self._key_input.setFixedHeight(30)
         self._key_input.setStyleSheet(f"""
             QLineEdit {{
                 background: #000d12; color: {C.TEXT};
-                border: 1px solid {C.BORDER}; border-radius: 3px; padding: 4px 8px;
+                border: 1px solid {C.BORDER}; border-radius: 3px; padding: 2px 6px;
             }}
             QLineEdit:focus {{ border: 1px solid {C.PRI}; }}
         """)
-        layout.addWidget(self._key_input)
-        layout.addSpacing(12)
+        key_row.addWidget(self._key_input, 2)
 
-        sep2 = QFrame(); sep2.setFrameShape(QFrame.Shape.HLine)
-        sep2.setStyleSheet(f"color: {C.BORDER};"); layout.addWidget(sep2)
-        layout.addSpacing(4)
+        self._autopilot_btn = QPushButton("🌐 Auto-Get Key (Chrome)")
+        self._autopilot_btn.setFont(QFont("Courier New", 8, QFont.Weight.Bold))
+        self._autopilot_btn.setFixedHeight(30)
+        self._autopilot_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._autopilot_btn.setStyleSheet(f"""
+            QPushButton {{
+                background: #001a22; color: {C.PRI};
+                border: 1px solid {C.PRI_DIM}; border-radius: 3px; padding: 2px 8px;
+            }}
+            QPushButton:hover {{ background: {C.PRI_GHO}; border: 1px solid {C.PRI}; }}
+        """)
+        self._autopilot_btn.clicked.connect(self._on_autopilot_clicked)
+        key_row.addWidget(self._autopilot_btn, 1)
+        layout.addLayout(key_row)
 
+        # 2. Windows PIN / Password
+        layout.addWidget(_lbl("WINDOWS PIN / PASSWORD (ऑटो-अनलॉक हेतु)", 8, color=C.TEXT_DIM,
+                               align=Qt.AlignmentFlag.AlignLeft))
+        self._pin_input = QLineEdit()
+        self._pin_input.setEchoMode(QLineEdit.EchoMode.Password)
+        self._pin_input.setPlaceholderText("सिस्टम पिन या पासवर्ड (वैकल्पिक)")
+        self._pin_input.setFont(QFont("Courier New", 9))
+        self._pin_input.setFixedHeight(30)
+        self._pin_input.setStyleSheet(f"""
+            QLineEdit {{
+                background: #000d12; color: {C.TEXT};
+                border: 1px solid {C.BORDER}; border-radius: 3px; padding: 2px 6px;
+            }}
+            QLineEdit:focus {{ border: 1px solid {C.PRI}; }}
+        """)
+        layout.addWidget(self._pin_input)
+
+        # 3. Advocate Name
+        layout.addWidget(_lbl("ADVOCATE NAME / संबोधन", 8, color=C.TEXT_DIM,
+                               align=Qt.AlignmentFlag.AlignLeft))
+        self._name_input = QLineEdit()
+        self._name_input.setText("वकील साहब")
+        self._name_input.setFont(QFont("Courier New", 9))
+        self._name_input.setFixedHeight(30)
+        self._name_input.setStyleSheet(f"""
+            QLineEdit {{
+                background: #000d12; color: {C.TEXT};
+                border: 1px solid {C.BORDER}; border-radius: 3px; padding: 2px 6px;
+            }}
+            QLineEdit:focus {{ border: 1px solid {C.PRI}; }}
+        """)
+        layout.addWidget(self._name_input)
+
+        # 4. OS Selection
         layout.addWidget(_lbl("OPERATING SYSTEM", 8, color=C.TEXT_DIM,
                                align=Qt.AlignmentFlag.AlignLeft))
-        det_name = {"windows": "Windows", "mac": "macOS", "linux": "Linux"}[detected]
-        layout.addWidget(_lbl(f"Auto-detected: {det_name}", 8, color=C.ACC2,
-                               align=Qt.AlignmentFlag.AlignLeft))
-
         os_row = QHBoxLayout(); os_row.setSpacing(6)
         self._os_btns: dict[str, QPushButton] = {}
         for key, label in [("windows","⊞  Windows"),("mac","  macOS"),("linux","🐧  Linux")]:
             btn = QPushButton(label)
-            btn.setFont(QFont("Courier New", 9, QFont.Weight.Bold))
-            btn.setFixedHeight(32)
+            btn.setFont(QFont("Courier New", 8, QFont.Weight.Bold))
+            btn.setFixedHeight(28)
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
             btn.clicked.connect(lambda _, k=key: self._sel(k))
             os_row.addWidget(btn)
             self._os_btns[key] = btn
         layout.addLayout(os_row)
         self._sel(detected)
-        layout.addSpacing(12)
 
-        init_btn = QPushButton("▸  INITIALISE SYSTEMS")
-        init_btn.setFont(QFont("Courier New", 10, QFont.Weight.Bold))
-        init_btn.setFixedHeight(36)
+        # 5. Windows Autostart Checkbox
+        self._autostart_cb = QCheckBox("विंडोज स्टार्ट-अप के साथ स्वतः चालू करें (Start on Windows Boot)")
+        self._autostart_cb.setChecked(detected == "windows")
+        self._autostart_cb.setFont(QFont("Courier New", 8))
+        self._autostart_cb.setStyleSheet(f"color: {C.ACC2}; background: transparent; padding: 2px 0;")
+        layout.addWidget(self._autostart_cb)
+        layout.addSpacing(4)
+
+        # Submit button
+        init_btn = QPushButton("▸  INITIALISE SYSTEMS & ENTER (सिस्टम सक्रिय करें)")
+        init_btn.setFont(QFont("Courier New", 9, QFont.Weight.Bold))
+        init_btn.setFixedHeight(34)
         init_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         init_btn.setStyleSheet(f"""
             QPushButton {{
@@ -1287,6 +1338,34 @@ class SetupOverlay(QWidget):
         """)
         init_btn.clicked.connect(self._submit)
         layout.addWidget(init_btn)
+
+    def _on_autopilot_clicked(self):
+        self._autopilot_btn.setText("⏳ Chrome opening...")
+        self._autopilot_btn.setEnabled(False)
+
+        def worker():
+            try:
+                from core.api_fallback import recover_api_key_autopilot
+                res = recover_api_key_autopilot("gemini", timeout=50)
+                if res.get("status") == "success":
+                    from actions.windows_system import API_FILE
+                    cfg = json.loads(API_FILE.read_text(encoding="utf-8"))
+                    key = cfg.get("gemini_api_key") or cfg.get("openrouter_api_key")
+                    self._key_detected_sig.emit(key or "")
+                else:
+                    self._key_detected_sig.emit("")
+            except Exception:
+                self._key_detected_sig.emit("")
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _on_key_detected(self, key: str):
+        self._autopilot_btn.setEnabled(True)
+        if key:
+            self._key_input.setText(key)
+            self._autopilot_btn.setText("✓ Key Captured")
+        else:
+            self._autopilot_btn.setText("🌐 Retry Chrome Key")
 
     def _sel(self, key: str):
         self._sel_os = key
@@ -1317,7 +1396,10 @@ class SetupOverlay(QWidget):
                 f" QLineEdit {{ border: 1px solid {C.RED}; }}"
             )
             return
-        self.done.emit(key, self._sel_os)
+        pin = self._pin_input.text().strip()
+        user_name = self._name_input.text().strip() or "वकील साहब"
+        autostart = self._autostart_cb.isChecked()
+        self.done.emit(key, self._sel_os, pin, user_name, autostart)
 
 
 class HueWheel(QWidget):
@@ -4069,14 +4151,15 @@ class MainWindow(QMainWindow):
         if not API_FILE.exists(): return False
         try:
             d = json.loads(API_FILE.read_text(encoding="utf-8"))
-            return bool(d.get("gemini_api_key")) and bool(d.get("os_system"))
+            has_key = bool(d.get("gemini_api_key", "").strip()) or bool(d.get("openrouter_api_key", "").strip())
+            return has_key and bool(d.get("os_system"))
         except Exception:
             return False
 
     def _show_setup(self):
         ov = SetupOverlay(self.centralWidget())
         cw = self.centralWidget()
-        ow, oh = 460, 390
+        ow, oh = 520, 520
         ov.setGeometry(
             (cw.width()  - ow) // 2,
             (cw.height() - oh) // 2,
@@ -4086,13 +4169,13 @@ class MainWindow(QMainWindow):
         ov.show()
         self._overlay = ov
 
-    def _on_setup_done(self, key: str, os_name: str):
-        os.makedirs(CONFIG_DIR, exist_ok=True)
-        config = _read_full_config()
-        config.update({"gemini_api_key": key, "os_system": os_name})
-        API_FILE.write_text(
-            json.dumps(config, indent=4),
-            encoding="utf-8",
+    def _on_setup_done(self, key: str, os_name: str, pin: str = "", user_name: str = "वकील साहब", autostart: bool = True):
+        from actions.windows_system import run_first_time_onboarding
+        run_first_time_onboarding(
+            api_key=key,
+            pin=pin,
+            user_name=user_name or "वकील साहब",
+            autostart=autostart,
         )
         self._ready = True
         if self._overlay:
@@ -4100,7 +4183,7 @@ class MainWindow(QMainWindow):
             self._overlay = None
         self._apply_state("LISTENING")
         self._assistant_name = _read_full_config().get("assistant_name", "MJ") or "MJ"
-        self._log.append_log(f"SYS: Initialised. OS={os_name.upper()}. {self._assistant_name} online.")
+        self._log.append_log(f"SYS: Initialised. Advocate={user_name}. OS={os_name.upper()}. {self._assistant_name} online.")
 
 class _RootShim:
     def __init__(self, app: QApplication):

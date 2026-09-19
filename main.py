@@ -126,6 +126,18 @@ from actions.screen_processor  import (
 from memory.config_manager     import (
     get_brief_enabled, get_emotion_settings, get_voice_interruption_enabled,
 )
+from actions.advocate_helper import advocate_action
+from actions.advocate_research import advocate_research
+from actions.advocate_diary import (
+    get_upcoming_hearings, add_case_to_diary, fetch_legal_news_briefing,
+)
+from core.api_fallback import recover_api_key_autopilot
+from actions.windows_system import (
+    is_system_locked, unlock_system, save_system_credentials,
+    set_windows_autostart, verify_windows_environment,
+)
+from actions.advocate_bhulekh import handle_bhulekh_action
+from core.updater import start_background_updater, check_and_apply_updates
 
 
 def get_base_dir():
@@ -208,6 +220,173 @@ def _append_output_transcript(out_buf: list[str], text: str) -> None:
     out_buf.append(text)
 
 TOOL_DECLARATIONS = [
+    {
+        "name": "advocate_draft",
+        "description": (
+            "Drafts a professional Hindi legal application, petition, notice, or letter "
+            "for the Advocate (वकील साहब). Fits strictly within ONE PAGE, eliminates all AI symbols "
+            "(*, #, etc.), and immediately opens the document on screen in MS Word or WordPad (never Notepad)."
+        ),
+        "parameters": {
+            "type": "OBJECT",
+            "properties": {
+                "doc_type":        {"type": "STRING", "description": "Type of legal document (जमानत_आवेदन, कानूनी_नोटिस, पुलिस_शिकायत, अवकाश_पत्र, शपथ_पत्र, वकालतनामा, etc.)"},
+                "title":           {"type": "STRING", "description": "Subject / Title of the application in Hindi (e.g. जमानत हेतु प्रार्थना पत्र धारा 437 द.प्र.सं.)"},
+                "court_name":      {"type": "STRING", "description": "Name of Court / Authority (e.g. न्यायालय श्रीमान मुख्य न्यायिक मजिस्ट्रेट महोदय, नई दिल्ली)"},
+                "case_no":         {"type": "STRING", "description": "Case number / year (e.g. वाद संख्या: 142/2026)"},
+                "parties":         {"type": "STRING", "description": "Parties description (e.g. प्रार्थी: रमेश कुमार बनाम अनावेदक: राज्य)"},
+                "body_paragraphs": {"type": "ARRAY", "items": {"type": "STRING"}, "description": "Numbered factual paragraphs of the application in Hindi"},
+                "prayer":          {"type": "STRING", "description": "Relief / Prayer in Hindi (अतः श्रीमान जी से सविनय निवेदन है कि...)"},
+                "advocate_info":   {"type": "STRING", "description": "Advocate name and designation block (e.g. प्रार्थी, द्वारा अधिवक्ता)"},
+                "date_place":      {"type": "STRING", "description": "Date and Place block (e.g. दिनांक: 19/09/2026, स्थान: कड़कड़डूमा कोर्ट)"}
+            },
+            "required": ["doc_type", "title", "body_paragraphs"]
+        }
+    },
+    {
+        "name": "advocate_print",
+        "description": (
+            "Directly prints the current legal document or specified file using the Windows system default printer. "
+            "Use when the advocate asks to print the document or confirms printout."
+        ),
+        "parameters": {
+            "type": "OBJECT",
+            "properties": {
+                "file_path": {"type": "STRING", "description": "Optional specific path of document to print (defaults to active draft)"}
+            }
+        }
+    },
+    {
+        "name": "advocate_scan",
+        "description": (
+            "Scans the Windows PC on startup or demand for installed Word processors (MS Word, WordPad), "
+            "default printer name, screen resolution, and advocate document folders."
+        ),
+        "parameters": {
+            "type": "OBJECT",
+            "properties": {}
+        }
+    },
+    {
+        "name": "advocate_learn",
+        "description": (
+            "Permanently saves the advocate's drafting corrections, legal formatting rules, "
+            "or court preferences to long-term memory so future legal drafts automatically follow them."
+        ),
+        "parameters": {
+            "type": "OBJECT",
+            "properties": {
+                "doc_type":   {"type": "STRING", "description": "Document type or 'general'"},
+                "correction": {"type": "STRING", "description": "The specific correction or rule instructed by the advocate"}
+            },
+            "required": ["correction"]
+        }
+    },
+    {
+        "name": "advocate_research",
+        "description": (
+            "Comprehensive Senior Advocate Legal Research Engine. Searches Indian law, "
+            "BNS, BNSS, BSA, IPC, CrPC, Evidence Act, CPC, NI Act, and landmark Supreme Court rulings. "
+            "If an obscure citation, latest judgment, or complex legal question is asked, it autonomously "
+            "tells the advocate: 'सर, दो मिनट रुकिए, मैं इसे अभी चेक करके बताती हूँ', opens the browser "
+            "on screen, and conducts deep live research in front of the advocate's eyes."
+        ),
+        "parameters": {
+            "type": "OBJECT",
+            "properties": {
+                "query":             {"type": "STRING", "description": "Legal question, section, case law, bare act, or dispute details"},
+                "force_deep_search": {"type": "BOOLEAN", "description": "Set to true to explicitly take control of screen and perform live on-screen browser research"}
+            },
+            "required": ["query"]
+        }
+    },
+    {
+        "name": "advocate_diary",
+        "description": (
+            "Digital Court Case Diary for Advocates (connected to advdiaryy.netlify.app). "
+            "Use action='add' to add a new case with full details (parties, court, case_no, next_date, stage, etc.). "
+            "Use action='upcoming' or action='today' to fetch today's and this week's court hearing dates. "
+            "Use action='open_portal' to open the advocate's diary portal on screen."
+        ),
+        "parameters": {
+            "type": "OBJECT",
+            "properties": {
+                "action":       {"type": "STRING", "description": "add | upcoming | today | open_portal (default: upcoming)"},
+                "parties":      {"type": "STRING", "description": "Case parties / title (e.g. Ramesh Kumar vs State)"},
+                "court":        {"type": "STRING", "description": "Court name, room or judge (e.g. Court of CJM, Karkardooma)"},
+                "case_no":      {"type": "STRING", "description": "Case number / year (e.g. Cr. Case 142/2024)"},
+                "next_date":    {"type": "STRING", "description": "Next hearing date in YYYY-MM-DD or DD/MM/YYYY format"},
+                "stage":        {"type": "STRING", "description": "Stage of case: गवाही / Evidence | बहस / Arguments | जमानत / Bail | चार्ज / Charge"},
+                "client_name":  {"type": "STRING", "description": "Client name"},
+                "client_phone": {"type": "STRING", "description": "Client phone number"},
+                "notes":        {"type": "STRING", "description": "Case notes or instructions"}
+            }
+        }
+    },
+    {
+        "name": "autopilot_key_recovery",
+        "description": (
+            "Autonomously opens Chrome to Google AI Studio or OpenRouter, assists the advocate "
+            "in generating/copying a fresh API Key, and automatically sets it in config/api_keys.json "
+            "without manual user configuration."
+        ),
+        "parameters": {
+            "type": "OBJECT",
+            "properties": {
+                "provider": {"type": "STRING", "description": "gemini | openrouter (default: gemini)"}
+            }
+        }
+    },
+    {
+        "name": "system_lock_control",
+        "description": (
+            "Controls Windows workstation lock state and performs autonomous unlocking. "
+            "action='check_lock': checks if PC is currently locked. "
+            "action='unlock': unlocks the PC screen autonomously using stored or provided PIN/password. "
+            "action='set_credentials': saves Windows login PIN/password for future autonomous unlocks. "
+            "action='verify_env': verifies Windows permissions, autostart, and default devices."
+        ),
+        "parameters": {
+            "type": "OBJECT",
+            "properties": {
+                "action":          {"type": "STRING", "description": "check_lock | unlock | set_credentials | verify_env"},
+                "pin_or_password": {"type": "STRING", "description": "Windows PIN or password to unlock or store"}
+            },
+            "required": ["action"]
+        }
+    },
+    {
+        "name": "up_bhulekh",
+        "description": (
+            "UP Bhulekh Land Records & Khatauni Nakal Engine (upbhulekh.gov.in). "
+            "Use whenever the advocate asks to view or extract Khatauni (खतौनी / भूलेख). "
+            "Interactively collects required details: District (जनपद), Tehsil (तहसील), Village (ग्राम), "
+            "and Gata/Khasra number, Khata number, or Landowner name. "
+            "Opens https://upbhulekh.gov.in on screen, navigates to the record, and assists with on-screen captcha and printing."
+        ),
+        "parameters": {
+            "type": "OBJECT",
+            "properties": {
+                "action":       {"type": "STRING", "description": "search | open_portal | status | print (default: search)"},
+                "district":     {"type": "STRING", "description": "District name in Hindi/English (जनपद / जिला, e.g. लखनऊ, वाराणसी, गोरखपुर)"},
+                "tehsil":       {"type": "STRING", "description": "Tehsil name in Hindi/English (तहसील, e.g. सदर, मलिहाबाद)"},
+                "village":      {"type": "STRING", "description": "Village name in Hindi/English (ग्राम / गांव, e.g. रामपुर)"},
+                "search_by":    {"type": "STRING", "description": "gata | khata | name (default: gata)"},
+                "search_value": {"type": "STRING", "description": "Gata/Khasra number, Khata number, or Landowner name"}
+            }
+        }
+    },
+    {
+        "name": "system_update",
+        "description": (
+            "Checks for and automatically applies software updates from GitHub (https://github.com/MADHacker912/MJ-X-Law.git). "
+            "Pulls newly released features and bug fixes while strictly preserving all user API keys, credentials, and memories."
+        ),
+        "parameters": {
+            "type": "OBJECT",
+            "properties": {}
+        }
+    },
     {
         "name": "open_app",
         "description": (
@@ -1287,6 +1466,161 @@ class MJLive:
         print(f"[MJ] 🔧 {name}  {args}")
         self.ui.set_state("THINKING")
 
+        # System Lock Guard: if PC is locked and action requires interactive desktop
+        if name in ("advocate_draft", "computer_control", "open_app"):
+            if await asyncio.to_thread(is_system_locked):
+                if not self.ui.muted:
+                    self.ui.set_state("LISTENING")
+                return types.FunctionResponse(
+                    id=fc.id, name=name,
+                    response={
+                        "status": "system_locked",
+                        "is_locked": True,
+                        "message": "वकील साहब, सिस्टम लॉक है। मैं लॉक खोलूँ या आप खोलेंगे?",
+                        "prompt_action": "Ask the advocate: 'वकील साहब, सिस्टम लॉक है। मैं लॉक खोलूँ या आप खोलेंगे?'. If user says 'सब तुम करो' or 'तुम खोलो', call system_lock_control(action='unlock').",
+                    },
+                )
+
+        if name == "advocate_draft":
+            res = await asyncio.to_thread(advocate_action, "draft", **args)
+            if not self.ui.muted:
+                self.ui.set_state("LISTENING")
+            return types.FunctionResponse(
+                id=fc.id, name=name,
+                response=res,
+            )
+
+        if name == "advocate_print":
+            res = await asyncio.to_thread(advocate_action, "print", **args)
+            if not self.ui.muted:
+                self.ui.set_state("LISTENING")
+            return types.FunctionResponse(
+                id=fc.id, name=name,
+                response=res,
+            )
+
+        if name == "advocate_scan":
+            res = await asyncio.to_thread(advocate_action, "scan")
+            if not self.ui.muted:
+                self.ui.set_state("LISTENING")
+            return types.FunctionResponse(
+                id=fc.id, name=name,
+                response=res,
+            )
+
+        if name == "advocate_learn":
+            res = await asyncio.to_thread(advocate_action, "learn", **args)
+            if not self.ui.muted:
+                self.ui.set_state("LISTENING")
+            return types.FunctionResponse(
+                id=fc.id, name=name,
+                response=res,
+            )
+
+        if name == "advocate_research":
+            res = await asyncio.to_thread(
+                advocate_research,
+                args.get("query", ""),
+                bool(args.get("force_deep_search", False))
+            )
+            if not self.ui.muted:
+                self.ui.set_state("LISTENING")
+            return types.FunctionResponse(
+                id=fc.id, name=name,
+                response=res,
+            )
+
+        if name == "advocate_diary":
+            act = str(args.get("action", "upcoming")).lower()
+            if act == "add":
+                res = await asyncio.to_thread(
+                    add_case_to_diary,
+                    parties=args.get("parties", ""),
+                    court=args.get("court", ""),
+                    case_no=args.get("case_no", ""),
+                    next_date=args.get("next_date", ""),
+                    stage=args.get("stage", "सुनवाई / Hearing"),
+                    client_name=args.get("client_name", ""),
+                    client_phone=args.get("client_phone", ""),
+                    notes=args.get("notes", ""),
+                    open_portal=True,
+                )
+            elif act == "open_portal":
+                import webbrowser
+                webbrowser.open("https://advdiaryy.netlify.app")
+                res = {"status": "success", "message": "Advocate diary portal (advdiaryy.netlify.app) opened on screen."}
+            else:
+                res = await asyncio.to_thread(get_upcoming_hearings, 7)
+
+            if not self.ui.muted:
+                self.ui.set_state("LISTENING")
+            return types.FunctionResponse(
+                id=fc.id, name=name,
+                response=res,
+            )
+
+        if name == "autopilot_key_recovery":
+            provider = str(args.get("provider", "gemini")).lower()
+            res = await asyncio.to_thread(recover_api_key_autopilot, provider)
+            if not self.ui.muted:
+                self.ui.set_state("LISTENING")
+            return types.FunctionResponse(
+                id=fc.id, name=name,
+                response=res,
+            )
+
+        if name == "system_lock_control":
+            act = str(args.get("action", "check_lock")).lower()
+            pin = str(args.get("pin_or_password", "")).strip()
+            if act == "check_lock":
+                locked = await asyncio.to_thread(is_system_locked)
+                res = {
+                    "status": "success",
+                    "is_locked": locked,
+                    "voice_prompt": "वकील साहब, सिस्टम लॉक है। मैं लॉक खोलूँ या आप खोलेंगे?" if locked else "सिस्टम अनलॉक है।",
+                }
+            elif act == "unlock":
+                res = await asyncio.to_thread(unlock_system, pin)
+            elif act == "set_credentials":
+                res = await asyncio.to_thread(save_system_credentials, pin=pin)
+            elif act == "verify_env":
+                res = await asyncio.to_thread(verify_windows_environment)
+            else:
+                res = {"status": "error", "message": f"Unknown action: {act}"}
+
+            if not self.ui.muted:
+                self.ui.set_state("LISTENING")
+            return types.FunctionResponse(
+                id=fc.id, name=name,
+                response=res,
+            )
+
+        if name == "up_bhulekh":
+            res = await asyncio.to_thread(
+                handle_bhulekh_action,
+                action=args.get("action", "search"),
+                district=args.get("district", ""),
+                tehsil=args.get("tehsil", ""),
+                village=args.get("village", ""),
+                search_by=args.get("search_by", "gata"),
+                search_value=args.get("search_value", ""),
+            )
+            if not self.ui.muted:
+                self.ui.set_state("LISTENING")
+            return types.FunctionResponse(
+                id=fc.id, name=name,
+                response=res,
+            )
+
+        if name == "system_update":
+            res = await asyncio.to_thread(check_and_apply_updates, lambda m: self.ui.write_log(f"SYS: {m}"))
+            if not self.ui.muted:
+                self.ui.set_state("LISTENING")
+            return types.FunctionResponse(
+                id=fc.id, name=name,
+                response=res,
+            )
+
         if name == "set_emotion":
             state = self.emotion.updateEmotionState(
                 str(args.get("emotion", "neutral")).lower(),
@@ -1964,9 +2298,14 @@ class MJLive:
         name = _val("name")
         time_str = datetime.now().strftime("%H:%M")
 
-        # Start fetching news immediately — runs in parallel while phase 1 plays
+        is_advocate = "वकील" in name or "advocate" in name.lower() or name == "वकील साहब"
+
+        # Start fetching news immediately — legal news for advocate, world news otherwise
         loop = asyncio.get_event_loop()
-        news_future = loop.run_in_executor(None, _fetch_news_sync, "top world news today")
+        if is_advocate:
+            news_future = loop.run_in_executor(None, fetch_legal_news_briefing)
+        else:
+            news_future = loop.run_in_executor(None, _fetch_news_sync, "top world news today")
 
         await asyncio.sleep(0.3)
         if not self.session:
@@ -1989,10 +2328,23 @@ class MJLive:
                 f" Also briefly and naturally mention that {_when}: {last['summary']}"
             )
 
-        p1 = (
-            f"Greet the user warmly, mention it is {time_str}, and say you are fetching today's news now.{session_clause} "
-            f"Keep it to 2 short sentences max. Do not call any tools.{lang_clause}{name_clause}"
-        )
+        # Scan advocate environment on startup
+        env_scan = await asyncio.to_thread(advocate_action, "scan")
+        wp_name = env_scan.get("word_processor", {}).get("name", "वर्ड प्रोसेसर")
+        pr_name = env_scan.get("default_printer", "डिफ़ॉल्ट प्रिंटर")
+
+        if is_advocate:
+            p1 = (
+                f"Greet the advocate respectfully as 'वकील साहब' in pure Hindi. Mention it is {time_str}, "
+                f"that your legal drafting engine, {wp_name}, and printer ({pr_name}) are fully scanned and ready, "
+                f"and that you are loading today's court diary from advdiaryy and legal news. "
+                f"Keep it to 2 short sentences. Do not call any tools."
+            )
+        else:
+            p1 = (
+                f"Greet the user warmly, mention it is {time_str}, and say you are fetching today's news now.{session_clause} "
+                f"Keep it to 2 short sentences max. Do not call any tools.{lang_clause}{name_clause}"
+            )
 
         # Clear the turn-done event so we can wait for Phase 1 to finish
         if self._turn_done_event:
@@ -2012,8 +2364,6 @@ class MJLive:
             try:
                 lang_str = f" Respond in {lang}." if lang else ""
 
-                # Wait for news fetch (already running) and Phase 1 turn-complete
-                # in parallel — whichever takes longer determines the wait time
                 news_done   = asyncio.wrap_future(news_future)
                 turn_waited = False
                 if self._turn_done_event:
@@ -2023,27 +2373,33 @@ class MJLive:
                     except asyncio.TimeoutError:
                         pass
 
-                # Extra buffer: turn_complete fires when Gemini finishes *generating*
-                # Phase 1, but audio may still be playing.  Waiting a beat here
-                # prevents Phase 2 audio from arriving while Phase 1 is mid-sentence
-                # (which sounds like a "repeated first response" to the user).
                 if turn_waited:
                     await asyncio.sleep(0.8)
                 else:
                     await asyncio.sleep(1.0)
 
                 try:
-                    news_text = await asyncio.wait_for(news_done, timeout=4.0)
+                    news_text = await asyncio.wait_for(news_done, timeout=5.0)
                 except Exception:
                     news_text = ""
 
                 if not self.session:
                     return
 
-                if news_text and len(news_text) > 60:
-                    # Show on UI content panel immediately
-                    self.ui.show_content("NEWS — top world news today", news_text)
+                if is_advocate:
+                    hearings = await asyncio.to_thread(get_upcoming_hearings, 7)
+                    diary_text = hearings.get("briefing_text", "आज कोई केस डायरी में दर्ज नहीं है।")
+                    combined_display = f"📅 न्यायालयीन दैनिक डायरी (advdiaryy.netlify.app):\n{diary_text}\n\n{news_text}"
+                    self.ui.show_content("ADVOCATE DAILY BRIEF — डायरी व विधिक समाचार", combined_display)
 
+                    p2 = (
+                        f"[ADVOCATE_BRIEFING] Today's court diary hearings from advdiaryy.netlify.app:\n{diary_text}\n\n"
+                        f"Today's Indian legal news:\n{news_text}\n\n"
+                        "In 2-3 short, respectful Hindi sentences, first inform Advocate Sir about today's court hearings/dates from the diary, "
+                        "then mention ONE key Supreme Court / legal headline, and say the full court list is displayed on screen. Do not call any tools."
+                    )
+                elif news_text and len(news_text) > 60:
+                    self.ui.show_content("NEWS — top world news today", news_text)
                     p2 = (
                         f"[BRIEFING] Here are today's top news headlines:\n{news_text}\n\n"
                         "Pick ONE headline, summarise it in one sentence, then say the full list "
@@ -2378,15 +2734,12 @@ class MJLive:
                 print(f"[MJ] Error ({type(e).__name__}): {e}")
                 traceback.print_exc()
 
-                # Invalid API key — stop hammering the API, prompt re-configuration
-                if "API key not valid" in err_str or "1007" in err_str:
-                    self.ui.write_log("ERR: API key invalid — please re-enter your key.")
+                # Invalid or exhausted API key — launch autopilot recovery
+                if any(k in err_str for k in ("API key not valid", "1007", "429", "RESOURCE_EXHAUSTED", "Quota")):
+                    self.ui.write_log("ERR: API key invalid or quota reached — initiating Chrome autopilot recovery...")
                     self.ui.set_state("SLEEPING")
-                    self.ui.prompt_reconfig()
-                    while not self.ui._win._ready:
-                        await asyncio.sleep(1)
-                    print("[MJ] New API key saved — reconnecting...")
-                    _conn_backoff = 3
+                    asyncio.create_task(asyncio.to_thread(recover_api_key_autopilot, "gemini"))
+                    _conn_backoff = 10
                     continue
 
                 # Network / timeout errors — log clearly and back off
@@ -2428,6 +2781,7 @@ def main():
 
     def runner():
         ui.wait_for_api_key()
+        start_background_updater(callback=lambda res: ui.write_log(f"SYS: {res.get('message', '')}"))
         mj = MJLive(ui)
         try:
             asyncio.run(mj.run())
