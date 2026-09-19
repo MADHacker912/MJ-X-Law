@@ -228,7 +228,7 @@ def summarize_recent_whatsapp_messages(contact_query: Optional[str] = None, limi
                     f"Highlight who messaged and what important information they asked or shared:\n\n{context_str}"
                 )
                 resp = client.models.generate_content(
-                    model="gemini-3.6-flash",
+                    model="gemini-2.5-flash",
                     contents=prompt,
                     config=types.GenerateContentConfig(
                         system_instruction="You are MJ, Saksham's executive AI assistant summarizing WhatsApp messages.",
@@ -347,7 +347,7 @@ class WhatsAppBridge:
                 from google.genai import types
                 client = genai.Client(api_key=key)
                 resp = client.models.generate_content(
-                    model="gemini-3.6-flash",
+                    model="gemini-2.5-flash",
                     contents=prompt,
                     config=types.GenerateContentConfig(
                         system_instruction=system_prompt,

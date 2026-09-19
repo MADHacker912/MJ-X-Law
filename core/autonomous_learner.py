@@ -91,7 +91,7 @@ Source Context: {context_info[:3000]}
 Format as a concise structured summary (3-5 bullet points) of useful skills, API patterns, or techniques to learn."""
 
             resp = client.models.generate_content(
-                model="gemini-3.6-flash",
+                model="gemini-2.5-flash",
                 contents=prompt
             )
             summary = resp.text.strip()

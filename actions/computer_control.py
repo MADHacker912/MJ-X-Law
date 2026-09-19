@@ -298,15 +298,50 @@ def _focus_window(title: str) -> str:
 
     if os_name == "windows":
         try:
-            script = f'(New-Object -ComObject WScript.Shell).AppActivate("{title}")'
-            subprocess.run(
-                ["powershell", "-NoProfile", "-NonInteractive", "-Command", script],
-                capture_output=True, timeout=5, **_WIN_HIDE,
-            )
-            time.sleep(0.3)
-            return f"Focused window: {title}"
-        except Exception as e:
-            return f"focus_window (Windows) failed: {e}"
+            import ctypes
+            user32 = ctypes.windll.user32
+            target_title = title.lower().strip()
+            found_hwnd = None
+
+            def enum_windows_callback(hwnd, lparam):
+                nonlocal found_hwnd
+                if user32.IsWindowVisible(hwnd):
+                    length = user32.GetWindowTextLengthW(hwnd)
+                    if length > 0:
+                        buff = ctypes.create_unicode_buffer(length + 1)
+                        user32.GetWindowTextW(hwnd, buff, length + 1)
+                        if target_title in buff.value.lower():
+                            found_hwnd = hwnd
+                            return False
+                return True
+
+            WNDENUMPROC = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_int, ctypes.c_int)
+            user32.EnumWindows(WNDENUMPROC(enum_windows_callback), 0)
+
+            if found_hwnd:
+                user32.ShowWindow(found_hwnd, 9)  # 9 = SW_RESTORE
+                user32.SetForegroundWindow(found_hwnd)
+                time.sleep(0.3)
+                return f"Focused window: {title}"
+            else:
+                script = f'(New-Object -ComObject WScript.Shell).AppActivate("{title}")'
+                subprocess.run(
+                    ["powershell", "-NoProfile", "-NonInteractive", "-Command", script],
+                    capture_output=True, timeout=5, **_WIN_HIDE,
+                )
+                time.sleep(0.3)
+                return f"Focused window: {title}"
+        except Exception:
+            try:
+                script = f'(New-Object -ComObject WScript.Shell).AppActivate("{title}")'
+                subprocess.run(
+                    ["powershell", "-NoProfile", "-NonInteractive", "-Command", script],
+                    capture_output=True, timeout=5, **_WIN_HIDE,
+                )
+                time.sleep(0.3)
+                return f"Focused window: {title}"
+            except Exception as e:
+                return f"focus_window (Windows) failed: {e}"
 
     if os_name == "mac":
         script = (
@@ -374,7 +409,7 @@ def _screen_find(description: str) -> tuple[int, int] | None:
         )
 
         response = client.models.generate_content(
-            model="gemini-3.6-flash",
+            model="gemini-2.5-flash",
             contents=[
                 gtypes.Part.from_bytes(data=image_bytes, mime_type="image/png"),
                 prompt,

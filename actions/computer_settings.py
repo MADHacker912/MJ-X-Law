@@ -409,12 +409,14 @@ def press_key(key: str): pyautogui.press(key)
 def type_text(text: str, press_enter_after: bool = False):
     if not text:
         return
+    norm_text = re.sub(r'(?<!\\)/n', '\n', str(text))
+    norm_text = norm_text.replace(r'\n', '\n').replace(r'\\n', '\n')
     if _PYPERCLIP:
-        pyperclip.copy(str(text))
+        pyperclip.copy(norm_text)
         time.sleep(0.15)
         paste()
     else:
-        pyautogui.write(str(text), interval=0.03)
+        pyautogui.write(norm_text, interval=0.03)
     if press_enter_after:
         time.sleep(0.1)
         pyautogui.press("enter")
@@ -548,11 +550,16 @@ def toggle_wifi():
 
 def restart_computer():
     if _OS == "Windows":
-        subprocess.run(["shutdown", "/r", "/t", "5"], capture_output=True, **_WIN_HIDE)
+        try:
+            subprocess.run(["shutdown", "/r", "/f", "/t", "2"], capture_output=True, **_WIN_HIDE)
+        except Exception:
+            subprocess.run(["powershell", "-Command", "Restart-Computer -Force"], capture_output=True, **_WIN_HIDE)
+        return "Restarting computer in 2 seconds..."
     elif _OS == "Darwin":
         subprocess.run(["osascript", "-e", 'tell application "System Events" to restart'], capture_output=True)
+        return "Restarting macOS computer..."
     else:
-        for cmd in [["systemctl", "reboot"], ["loginctl", "reboot"], ["reboot"]]:
+        for cmd in [["systemctl", "reboot"], ["loginctl", "reboot"], ["reboot"], ["shutdown", "-r", "now"]]:
             try:
                 r = subprocess.run(cmd, capture_output=True, text=True, timeout=5)
                 if r.returncode == 0:
@@ -563,9 +570,14 @@ def restart_computer():
 
 def shutdown_computer():
     if _OS == "Windows":
-        subprocess.run(["shutdown", "/s", "/t", "5"], capture_output=True, **_WIN_HIDE)
+        try:
+            subprocess.run(["shutdown", "/s", "/f", "/t", "2"], capture_output=True, **_WIN_HIDE)
+        except Exception:
+            subprocess.run(["powershell", "-Command", "Stop-Computer -Force"], capture_output=True, **_WIN_HIDE)
+        return "Shutting down computer in 2 seconds..."
     elif _OS == "Darwin":
         subprocess.run(["osascript", "-e", 'tell application "System Events" to shut down'], capture_output=True)
+        return "Shutting down macOS computer..."
     else:
         for cmd in [["systemctl", "poweroff"], ["loginctl", "poweroff"], ["poweroff"], ["shutdown", "-h", "now"]]:
             try:
@@ -652,10 +664,17 @@ ACTION_MAP: dict[str, callable] = {
     "dark_mode":           dark_mode,
     "toggle_wifi":         toggle_wifi,
     "restart":             restart_computer,
+    "reboot":              restart_computer,
+    "restart_computer":    restart_computer,
+    "restart_pc":          restart_computer,
+    "system_restart":      restart_computer,
     "shutdown":            shutdown_computer,
+    "shutdown_computer":   shutdown_computer,
+    "shutdown_pc":         shutdown_computer,
+    "poweroff":            shutdown_computer,
 }
 
-_DANGEROUS_ACTIONS = {"restart", "shutdown"}
+_DANGEROUS_ACTIONS = {"restart", "shutdown", "reboot", "restart_computer", "restart_pc", "shutdown_computer", "shutdown_pc", "poweroff"}
 
 
 
@@ -686,7 +705,7 @@ Rules:
 - Return ONLY the JSON, no explanation, no markdown."""
 
     try:
-        resp = _client.models.generate_content(model="gemini-3.6-flash", contents=prompt)
+        resp = _client.models.generate_content(model="gemini-2.5-flash", contents=prompt)
         text = re.sub(r"```(?:json)?", "", resp.text).strip().rstrip("`").strip()
         return json.loads(text)
     except Exception as e:
@@ -719,13 +738,11 @@ def computer_settings(
     if player:
         player.write_log(f"[Settings] {action}")
 
-    if action in _DANGEROUS_ACTIONS:
-        confirmed = str(params.get("confirmed", "")).lower()
-        if confirmed not in ("yes", "true", "1", "confirm"):
-            return (
-                f"This will {action} the computer. "
-                f"Please confirm by calling again with confirmed=yes."
-            )
+    if action in ("restart", "reboot", "restart_computer", "restart_pc", "system_restart"):
+        return restart_computer()
+
+    if action in ("shutdown", "shutdown_computer", "shutdown_pc", "poweroff"):
+        return shutdown_computer()
 
     if action == "volume_set":
         try:

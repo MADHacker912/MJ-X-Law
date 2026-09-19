@@ -533,15 +533,15 @@ TOOL_DECLARATIONS = [
         "name": "computer_settings",
         "description": (
             "Controls the computer: volume, brightness, window management, keyboard shortcuts, "
-            "typing text on screen, closing apps, fullscreen, dark mode, WiFi, computer restart, computer shutdown, "
-            "scrolling, tab management, zoom, screenshots, lock screen, refresh/reload page. "
-            "Use restart/shutdown here only when the user explicitly means the PC or operating system. "
-            "To restart MJ itself, use restart_mj."
+            "typing text on screen, closing apps, fullscreen, dark mode, WiFi, computer restart (action='restart' or 'reboot'), "
+            "computer shutdown (action='shutdown'), scrolling, tab management, zoom, screenshots, lock screen, refresh/reload page. "
+            "Call action='restart' when the user wants to restart/reboot the PC or operating system. "
+            "To restart MJ assistant application itself, use restart_mj."
         ),
         "parameters": {
             "type": "OBJECT",
             "properties": {
-                "action":      {"type": "STRING", "description": "The action to perform"},
+                "action":      {"type": "STRING", "description": "The action to perform: restart | reboot | shutdown | volume_up | volume_down | mute | lock_screen | screenshot | switch_window | minimize | maximize | close_app | etc."},
                 "description": {"type": "STRING", "description": "Natural language description of what to do"},
                 "value":       {"type": "STRING", "description": "Optional value: volume level, text to type, etc."}
             },
@@ -1082,7 +1082,7 @@ class MJLive:
             response = await asyncio.wait_for(
                 asyncio.to_thread(
                     self._emotion_ai_client.models.generate_content,
-                    model="gemini-3.6-flash",
+                    model="gemini-2.5-flash",
                     contents=prompt,
                     config={"response_mime_type": "application/json", "temperature": 0.1},
                 ),
@@ -1111,7 +1111,7 @@ class MJLive:
                 response = await asyncio.wait_for(
                     asyncio.to_thread(
                         self._emotion_ai_client.models.generate_content,
-                        model="gemini-3.6-flash",
+                        model="gemini-2.5-flash",
                         contents=prompt,
                         config={"response_mime_type": "application/json", "temperature": 0.1},
                     ),
@@ -2278,7 +2278,7 @@ class MJLive:
             client = _genai.Client(api_key=_get_api_key())
             resp   = await asyncio.to_thread(
                 client.models.generate_content,
-                model="gemini-3.6-flash",
+                model="gemini-2.5-flash",
                 contents=prompt,
             )
             summary = (resp.text or "").strip()
