@@ -1494,13 +1494,14 @@ class HueWheel(QWidget):
 
 
 class CustomizeOverlay(QWidget):
-    """Floating overlay for assistant identity, API key, and UI colour."""
+    """Floating overlay for assistant identity, API keys, and UI colour."""
 
-    saved = pyqtSignal(str, str, str, str, str)  # assistant_name, user_name, ui_color, api_key, tts_voice_gender
-    _OW, _OH = 400, 548
+    saved = pyqtSignal(str, str, str, str, str, str)  # assistant_name, user_name, ui_color, api_key, openrouter_key, tts_voice_gender
+    _OW, _OH = 420, 600
 
     def __init__(self, assistant_name="MJ", user_name="",
                  ui_color=DEFAULT_UI_COLOR, api_key="",
+                 openrouter_api_key="",
                  tts_voice_gender="female", parent=None):
         super().__init__(parent)
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
@@ -1512,8 +1513,8 @@ class CustomizeOverlay(QWidget):
             }}
         """)
         lay = QVBoxLayout(self)
-        lay.setContentsMargins(24, 18, 24, 18)
-        lay.setSpacing(8)
+        lay.setContentsMargins(22, 14, 22, 14)
+        lay.setSpacing(6)
 
         def _lbl(txt, fs=9, bold=False, color=C.PRI, align=Qt.AlignmentFlag.AlignCenter):
             w = QLabel(txt); w.setAlignment(align)
@@ -1535,21 +1536,21 @@ class CustomizeOverlay(QWidget):
                             align=Qt.AlignmentFlag.AlignLeft))
         self._name_input = QLineEdit(assistant_name)
         self._name_input.setFont(QFont("Courier New", 10))
-        self._name_input.setFixedHeight(32)
+        self._name_input.setFixedHeight(30)
         self._name_input.setStyleSheet(_fs)
         lay.addWidget(self._name_input)
 
-        lay.addSpacing(4)
+        lay.addSpacing(2)
         lay.addWidget(_lbl("YOUR NAME  (leave blank for default sir / efendim)", 8,
                             color=C.TEXT_DIM, align=Qt.AlignmentFlag.AlignLeft))
         self._user_input = QLineEdit(user_name)
         self._user_input.setPlaceholderText("e.g.  Tony   (leave blank for auto)")
         self._user_input.setFont(QFont("Courier New", 10))
-        self._user_input.setFixedHeight(32)
+        self._user_input.setFixedHeight(30)
         self._user_input.setStyleSheet(_fs)
         lay.addWidget(self._user_input)
 
-        lay.addSpacing(4)
+        lay.addSpacing(2)
         lay.addWidget(_lbl("GEMINI API KEY", 8, color=C.TEXT_DIM,
                             align=Qt.AlignmentFlag.AlignLeft))
         key_row = QHBoxLayout(); key_row.setSpacing(6)
@@ -1557,13 +1558,13 @@ class CustomizeOverlay(QWidget):
         self._key_input.setEchoMode(QLineEdit.EchoMode.Password)
         self._key_input.setPlaceholderText("AIza...")
         self._key_input.setFont(QFont("Courier New", 10))
-        self._key_input.setFixedHeight(32)
+        self._key_input.setFixedHeight(30)
         self._key_input.setStyleSheet(_fs)
         key_row.addWidget(self._key_input)
 
         self._key_toggle = QPushButton("SHOW")
         self._key_toggle.setCheckable(True)
-        self._key_toggle.setFixedSize(52, 32)
+        self._key_toggle.setFixedSize(52, 30)
         self._key_toggle.setToolTip("Show or hide the Gemini API key")
         self._key_toggle.setFont(QFont("Courier New", 7, QFont.Weight.Bold))
         self._key_toggle.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -1579,7 +1580,37 @@ class CustomizeOverlay(QWidget):
         key_row.addWidget(self._key_toggle)
         lay.addLayout(key_row)
 
-        lay.addSpacing(4)
+        lay.addSpacing(2)
+        lay.addWidget(_lbl("OPENROUTER API KEY  (Optional / Failover)", 8, color=C.TEXT_DIM,
+                            align=Qt.AlignmentFlag.AlignLeft))
+        or_row = QHBoxLayout(); or_row.setSpacing(6)
+        self._openrouter_input = QLineEdit(openrouter_api_key)
+        self._openrouter_input.setEchoMode(QLineEdit.EchoMode.Password)
+        self._openrouter_input.setPlaceholderText("sk-or-v1-...")
+        self._openrouter_input.setFont(QFont("Courier New", 10))
+        self._openrouter_input.setFixedHeight(30)
+        self._openrouter_input.setStyleSheet(_fs)
+        or_row.addWidget(self._openrouter_input)
+
+        self._or_toggle = QPushButton("SHOW")
+        self._or_toggle.setCheckable(True)
+        self._or_toggle.setFixedSize(52, 30)
+        self._or_toggle.setToolTip("Show or hide the OpenRouter API key")
+        self._or_toggle.setFont(QFont("Courier New", 7, QFont.Weight.Bold))
+        self._or_toggle.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._or_toggle.setStyleSheet(f"""
+            QPushButton {{
+                background: #000d12; color: {C.TEXT_MED};
+                border: 1px solid {C.BORDER}; border-radius: 3px;
+            }}
+            QPushButton:hover {{ color: {C.TEXT}; border-color: {C.BORDER_B}; }}
+            QPushButton:checked {{ color: {C.PRI}; border-color: {C.PRI}; }}
+        """)
+        self._or_toggle.toggled.connect(self._toggle_openrouter_visibility)
+        or_row.addWidget(self._or_toggle)
+        lay.addLayout(or_row)
+
+        lay.addSpacing(2)
         lay.addWidget(_lbl("VOICE GENDER", 8, color=C.TEXT_DIM,
                             align=Qt.AlignmentFlag.AlignLeft))
         self._voice_combo = QComboBox()
@@ -1707,23 +1738,31 @@ class CustomizeOverlay(QWidget):
         )
         self._key_toggle.setText("HIDE" if visible else "SHOW")
 
+    def _toggle_openrouter_visibility(self, visible: bool):
+        self._openrouter_input.setEchoMode(
+            QLineEdit.EchoMode.Normal if visible else QLineEdit.EchoMode.Password
+        )
+        self._or_toggle.setText("HIDE" if visible else "SHOW")
+
     def _save(self):
         name = self._name_input.text().strip() or "MJ"
         user = self._user_input.text().strip()
         api_key = self._key_input.text().strip()
-        if len(api_key) < 16:
+        openrouter_key = self._openrouter_input.text().strip()
+        if len(api_key) < 16 and len(openrouter_key) < 16:
             self._key_input.setFocus()
             self._key_input.setStyleSheet(
                 self._key_input.styleSheet()
                 + f" QLineEdit {{ border: 1px solid {C.RED}; }}"
             )
             return
-        voice_gender = self._voice_combo.currentData() or "male"
+        voice_gender = self._voice_combo.currentData() or "female"
         self.saved.emit(
             name,
             user,
             self._sel_color or DEFAULT_UI_COLOR,
             api_key,
+            openrouter_key,
             voice_gender,
         )
         self.hide()
@@ -3987,6 +4026,7 @@ class MainWindow(QMainWindow):
             cfg.get("user_name", ""),
             cfg.get("ui_color", "") or DEFAULT_UI_COLOR,
             cfg.get("gemini_api_key", ""),
+            cfg.get("openrouter_api_key", ""),
             cfg.get("tts_voice_gender", "female"),
             parent=cw,
         )
@@ -4023,9 +4063,10 @@ class MainWindow(QMainWindow):
         user_name: str,
         ui_color: str = "",
         api_key: str = "",
+        openrouter_key: str = "",
         tts_voice_gender: str = "female",
     ):
-        """Update identity, API key, and theme settings, then persist config."""
+        """Update identity, API keys, and theme settings, then persist config."""
         self._assistant_name = name.strip() or "MJ"
         display = self._assistant_name.upper()
         if display == "MJ":
@@ -4049,15 +4090,19 @@ class MainWindow(QMainWindow):
             data["user_name"] = user_name.strip()
             if api_key:
                 data["gemini_api_key"] = api_key.strip()
+            if openrouter_key is not None:
+                data["openrouter_api_key"] = openrouter_key.strip()
             if ui_color:
                 data["ui_color"] = ui_color.strip().lower()
-            data["tts_voice_gender"] = (tts_voice_gender or "male").strip().lower()
+            data["tts_voice_gender"] = (tts_voice_gender or "female").strip().lower()
             API_FILE.write_text(json.dumps(data, indent=4), encoding="utf-8")
             self._log.append_log(f"SYS: Identity updated — {display}")
             if color_changed:
                 self._log.append_log(f"SYS: UI colour applied — {ui_color}")
             if api_key:
-                self._log.append_log("SYS: Gemini API key updated — reconnect MJ to apply it.")
+                self._log.append_log("SYS: Gemini API key updated.")
+            if openrouter_key:
+                self._log.append_log("SYS: OpenRouter API key updated.")
             self._log.append_log(f"SYS: Voice gender set to {data['tts_voice_gender']}")
         except Exception as e:
             self._log.append_log(f"ERR: Config save failed — {e}")
